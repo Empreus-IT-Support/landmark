@@ -1,0 +1,300 @@
+@import "tailwindcss";
+
+/*
+ * Palette taken from the official logo artwork, not the old WordPress theme.
+ *   logo-mark.svg  -> #243973  (the tripod mark)
+ *   logo-navy.svg  -> #111822  (the "Landmark" wordmark)
+ * The previous build used the YOOtheme theme's #1c3775, which is a different
+ * navy to the one the logo is actually drawn in.
+ */
+@theme {
+  --color-navy: #243973;
+  --color-navy-deep: #16224a;
+  --color-navy-dark: #0e1731;
+  --color-ink: #111822;
+  --color-ink-soft: #3d4657;
+
+  /*
+   * Secondary text. Reads as quieter than ink-soft but still passes AA on
+   * both light grounds (5.98:1 on white, 5.53:1 on paper). Use this instead
+   * of an opacity modifier — `text-ink-soft/50` looks right but lands at
+   * 2.2:1, and it is always the small mono labels that get faded.
+   */
+  --color-muted: #5b6472;
+
+  /*
+   * Accent, in two weights. The logo is navy + near-black only, so this is
+   * used sparingly — labels, indices, small rules — never as a large fill.
+   *
+   * `accent` is for dark grounds only: 4.69:1 on navy, 7.6:1 on ink, but just
+   * 2.35:1 on white. `accent-deep` is the light-ground counterpart at 5.18:1
+   * on white and 4.79:1 on paper. Use the right one for the ground or the
+   * label silently fails WCAG AA.
+   */
+  --color-accent: #ff8a3d;
+  --color-accent-deep: #c2410c;
+
+  --color-paper: #f6f6f4;
+  --color-paper-warm: #efeee9;
+  --color-line: #e2e2e0;
+  --color-line-mid: #c9c9c6;
+
+  /*
+   * Type is pitched technical rather than corporate — Space Grotesk's
+   * squared-off terminals sit with the angular mark, and a mono face carries
+   * the survey-register details (indices, localities, field labels).
+   */
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #fff;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headings use the geometric sans that matches the wordmark's letterforms. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+}
+
+h2 {
+  font-size: clamp(1.85rem, 3.2vw, 2.6rem);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+
+h3 {
+  font-size: clamp(1.25rem, 1.8vw, 1.5rem);
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background-color: var(--color-navy);
+  color: #fff;
+}
+
+/*
+ * Eyebrow — echoes the "SURVEYS" line of the stacked lockup: light weight,
+ * uppercase, widely letterspaced.
+ */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+/* Field label — the small mono metadata used through the survey register. */
+.field-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.field-value {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* Big index numeral on register rows. */
+.index-numeral {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.lede {
+  font-size: clamp(1.0625rem, 1.4vw, 1.1875rem);
+  line-height: 1.65;
+}
+
+/*
+ * Vanishing-point rule. The mark is two splayed legs converging on a centre
+ * post, so section headings sit above a rule that tapers the same way.
+ */
+.rule-converge {
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    currentColor 0%,
+    currentColor 22%,
+    transparent 100%
+  );
+}
+
+/* Angled cut used between dark and light sections, at the mark's leg angle. */
+.edge-cut-top {
+  clip-path: polygon(0 3.2vw, 100% 0, 100% 100%, 0 100%);
+}
+
+.edge-cut-bottom {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3.2vw), 0 100%);
+}
+
+@media (max-width: 640px) {
+  .edge-cut-top {
+    clip-path: polygon(0 5vw, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .edge-cut-bottom {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5vw), 0 100%);
+  }
+}
+
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   Motion
+   All of it is opt-in via classes and switched off wholesale under
+   prefers-reduced-motion at the bottom of this file.
+   --------------------------------------------------------------------------- */
+
+/* Scroll reveal. ScrollReveal.tsx adds .reveal-init then .reveal-in, and
+   only after confirming IntersectionObserver + a visible document, so
+   content is never left stranded invisible. */
+.reveal-init {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+.reveal-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Children of a [data-stagger] container cascade in behind the section. */
+.reveal-in [data-stagger] > * {
+  animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.reveal-in [data-stagger] > *:nth-child(1) { animation-delay: 0.05s; }
+.reveal-in [data-stagger] > *:nth-child(2) { animation-delay: 0.15s; }
+.reveal-in [data-stagger] > *:nth-child(3) { animation-delay: 0.25s; }
+.reveal-in [data-stagger] > *:nth-child(4) { animation-delay: 0.35s; }
+.reveal-in [data-stagger] > *:nth-child(5) { animation-delay: 0.45s; }
+.reveal-in [data-stagger] > *:nth-child(6) { animation-delay: 0.55s; }
+.reveal-in [data-stagger] > *:nth-child(7) { animation-delay: 0.65s; }
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Hero entrance — runs on load, no observer needed. */
+.hero-in > * {
+  animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.hero-in > *:nth-child(1) { animation-delay: 0.15s; }
+.hero-in > *:nth-child(2) { animation-delay: 0.28s; }
+.hero-in > *:nth-child(3) { animation-delay: 0.41s; }
+.hero-in > *:nth-child(4) { animation-delay: 0.54s; }
+.hero-in > *:nth-child(5) { animation-delay: 0.67s; }
+
+/* Slow drift on hero photography, so the background is never quite static. */
+.ken-burns {
+  animation: ken-burns 26s ease-in-out infinite alternate;
+  transform-origin: 60% 45%;
+}
+
+@keyframes ken-burns {
+  from {
+    transform: scale(1.04);
+  }
+  to {
+    transform: scale(1.15);
+  }
+}
+
+/* The contour texture creeps very slowly across dark sections. */
+.contour-drift {
+  animation: contour-drift 90s linear infinite;
+}
+
+@keyframes contour-drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 620px 620px;
+  }
+}
+
+.scroll-cue {
+  animation: scroll-cue 2.2s ease-in-out infinite;
+}
+
+@keyframes scroll-cue {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(9px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .reveal-init {
+    opacity: 1;
+    transform: none;
+  }
+}
