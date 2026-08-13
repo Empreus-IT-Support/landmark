@@ -128,6 +128,53 @@ every link hovered. Note that Tailwind v4 emits `oklab()` colours, so any
 contrast tooling must resolve colours through the browser rather than
 regex-parsing `getComputedStyle`.
 
+## Security
+
+Headers are set in `next.config.ts` for every route: CSP, HSTS
+(`max-age=63072000; includeSubDomains; preload`), `X-Frame-Options: DENY`,
+`X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`.
+`poweredByHeader` is off. `/api/*` additionally gets `no-store` and
+`X-Robots-Tag: noindex`.
+
+**CSP caveat:** `script-src` includes `'unsafe-inline'` because Next injects an
+inline bootstrap script and the layout embeds inline JSON-LD. Removing it means
+per-request nonces from middleware, which forces every page out of static
+rendering. The trade is deliberate for a site with no user-generated content —
+revisit if that changes.
+
+The contact endpoint (`app/api/contact/route.ts`):
+
+| Control | Detail |
+|---|---|
+| Rate limit | 5 requests per IP per 10 min, `Retry-After` on 429 |
+| Body size | rejected over 16 KB, before and after read |
+| Field caps | per-field length limits, non-strings coerced to `""` |
+| Email | validated against a conservative pattern |
+| Header injection | CR/LF and control chars stripped from subject and reply-to |
+| HTML | all interpolated values escaped |
+| Honeypot | hidden `website` field; silently accepts |
+| Methods | GET returns 405 |
+
+**The rate limiter is in-memory** (`lib/rate-limit.ts`) — per instance, reset by
+cold starts. It stops casual abuse, not a determined attacker. Move to Vercel
+KV / Upstash or an edge WAF rule if the endpoint is ever targeted.
+
+Not implemented: CAPTCHA (honeypot only), and there is no CSRF token — the
+endpoint is unauthenticated and only sends mail to a fixed address, so a forged
+cross-site POST achieves nothing an attacker couldn't do with `curl`. The rate
+limit is what bounds abuse.
+
+## SEO
+
+Per-page titles and descriptions, canonicals, Open Graph and Twitter cards,
+`ProfessionalService` JSON-LD, `sitemap.xml`, `robots.txt`, one `<h1>` per
+page, alt text on every image, `lang="en-AU"`, clean URLs, AVIF/WebP via
+`next/image`, and a real 404. `/privacy-policy` is `noindex` until a real
+policy is supplied.
+
+Set `NEXT_PUBLIC_SITE_URL` before the production build — it feeds canonicals,
+Open Graph, the sitemap and robots.txt, and currently defaults to the www host.
+
 ## Images
 
 `public/images/` holds the assets pulled from the WordPress media library,

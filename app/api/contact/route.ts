@@ -1,20 +1,78 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { CONTACT, SITE_NAME } from "@/lib/site";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
+
+/** Five submissions per IP per 10 minutes. */
+const RATE_LIMIT = 5;
+const RATE_WINDOW_MS = 10 * 60 * 1000;
+
+/** Reject oversized bodies before parsing rather than after. */
+const MAX_BODY_BYTES = 16 * 1024;
+
+/** Per-field caps, applied after trimming. */
+const LIMITS: Record<string, number> = {
+  firstName: 80,
+  lastName: 80,
+  organisation: 120,
+  phone: 40,
+  email: 254,
+  emailConfirm: 254,
+  street: 160,
+  city: 80,
+  state: 80,
+  postcode: 20,
+  comments: 4000,
+};
 
 const escapeHtml = (value: string) =>
   value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+/**
+ * Strip CR/LF and other control characters. Anything interpolated into a mail
+ * header (subject, reply-to) must go through this — a newline in a header
+ * value is a header-injection vector.
+ */
+const singleLine = (value: string) =>
+  value.replace(/[\r\n\u0000-\u001f\u007f]/g, " ").trim();
+
+// Deliberately conservative: one @, no whitespace, a dot in the domain.
+const EMAIL_RE = /^[^\s@,;:<>"'\\]+@[^\s@,;:<>"'\\]+\.[a-z]{2,}$/i;
 
 export async function POST(request: Request) {
-  let payload: Record<string, string>;
+  const ip = clientIp(request);
+  const limited = rateLimit(`contact:${ip}`, RATE_LIMIT, RATE_WINDOW_MS);
 
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many enquiries. Please try again shortly, or call us." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } },
+    );
+  }
+
+  const declaredLength = Number(request.headers.get("content-length") ?? 0);
+  if (declaredLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Request too large." }, { status: 413 });
+  }
+
+  const raw = await request.text();
+  if (raw.length > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Request too large." }, { status: 413 });
+  }
+
+  let payload: Record<string, unknown>;
   try {
-    payload = await request.json();
+    payload = JSON.parse(raw);
   } catch {
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  if (typeof payload !== "object" || payload === null) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
@@ -23,23 +81,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  const {
-    firstName = "",
-    lastName = "",
-    organisation = "",
-    phone = "",
-    email = "",
-    emailConfirm = "",
-    street = "",
-    city = "",
-    state = "",
-    postcode = "",
-    comments = "",
-  } = payload;
+  // Coerce every expected field to a trimmed, length-capped string. Anything
+  // that isn't a string (arrays, objects, numbers) becomes "".
+  const field = (name: string): string => {
+    const value = payload[name];
+    if (typeof value !== "string") return "";
+    return value.trim().slice(0, LIMITS[name] ?? 200);
+  };
+
+  const firstName = field("firstName");
+  const lastName = field("lastName");
+  const organisation = field("organisation");
+  const phone = field("phone");
+  const email = field("email");
+  const emailConfirm = field("emailConfirm");
+  const street = field("street");
+  const city = field("city");
+  const state = field("state");
+  const postcode = field("postcode");
+  const comments = field("comments");
 
   if (!firstName || !lastName || !phone || !email || !comments) {
     return NextResponse.json(
       { error: "Please complete all required fields." },
+      { status: 400 },
+    );
+  }
+
+  if (!EMAIL_RE.test(email)) {
+    return NextResponse.json(
+      { error: "Please enter a valid email address." },
       { status: 400 },
     );
   }
@@ -84,6 +155,7 @@ export async function POST(request: Request) {
         )
         .join("")}
     </table>
+    <p style="color:#666;font-size:12px">Submitted from ${escapeHtml(ip)}</p>
   `;
 
   try {
@@ -91,8 +163,11 @@ export async function POST(request: Request) {
     const { error } = await resend.emails.send({
       from: process.env.CONTACT_FROM_EMAIL || "enquiries@landmarksurveys.com.au",
       to: process.env.CONTACT_TO_EMAIL || CONTACT.email,
-      replyTo: email,
-      subject: `Website enquiry — ${firstName} ${lastName}`,
+      // Both header values are user-supplied, so both are flattened.
+      replyTo: singleLine(email),
+      subject: singleLine(
+        `Website enquiry — ${firstName} ${lastName}`,
+      ).slice(0, 180),
       html,
     });
 
@@ -112,4 +187,9 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+/** Anything other than POST on this endpoint is a probe. */
+export async function GET() {
+  return NextResponse.json({ error: "Method not allowed." }, { status: 405 });
 }
