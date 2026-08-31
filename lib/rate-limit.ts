@@ -66,6 +66,12 @@ export function rateLimit(
  * Client IP from the proxy headers Vercel and most reverse proxies set.
  * Falls back to a constant, which means an unknown-IP flood shares one
  * bucket — deliberately conservative rather than unlimited.
+ *
+ * SECOND LIMITATION: `x-forwarded-for` is only trustworthy when a proxy you
+ * control sets it and strips any client-supplied value. Vercel does. If this
+ * is ever self-hosted with the app exposed directly, an attacker can forge the
+ * header and get a fresh bucket per request, defeating the limit entirely.
+ * Behind a bare reverse proxy, make sure it overwrites rather than appends.
  */
 export function clientIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");

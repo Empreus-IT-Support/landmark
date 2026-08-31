@@ -98,11 +98,19 @@ export default function ContactPage() {
         <h2 id="find-us" className="sr-only">
           Find us
         </h2>
+        {/*
+          Sandboxed third-party embed. Scripts and its own origin are allowed
+          so the map renders; everything else stays denied — in particular
+          allow-top-navigation, so the frame cannot redirect the page it sits
+          in. allow-same-origin is safe here because the frame is cross-origin
+          and so cannot reach in to lift its own sandbox.
+        */}
         <iframe
           src={mapSrc}
           title={`Map showing Landmark Surveys at ${CONTACT.fullAddress}`}
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
+          sandbox="allow-scripts allow-same-origin"
           className="block h-[420px] w-full border-0 lg:h-[520px]"
         />
       </section>

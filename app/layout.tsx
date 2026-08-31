@@ -132,7 +132,12 @@ export default function RootLayout({
       <body className="antialiased">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          // Every value here is a local constant, but JSON.stringify does not
+          // escape "</script>" — escaping the angle bracket means this stays
+          // safe if the object is ever fed from data.
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          }}
         />
         <a
           href="#main"
