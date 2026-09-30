@@ -3,7 +3,7 @@
 Next.js rebuild of the Landmark Surveys website, replacing the WordPress /
 YOOtheme build at `landmarksurvey.wpenginepowered.com`.
 
-Next.js 16 · React 19 · Tailwind CSS v4 · TypeScript · Resend
+Next.js 16 · React 19 · Tailwind CSS v4 · TypeScript · Atlas
 
 ## Running
 
@@ -21,9 +21,9 @@ npm start       # serve the production build
 
 ## Environment
 
-Copy `.env.example` to `.env.local` and set `RESEND_API_KEY`. Without it the
+Copy `.env.example` to `.env.local` and set `ATLAS_API_KEY`. Without it the
 contact form returns a "not configured" message rather than failing silently.
-`CONTACT_FROM_EMAIL` must be on a domain verified in Resend.
+`CONTACT_FROM_EMAIL` must be a bare address Atlas authorises for the key.
 
 ## Routes
 
@@ -37,7 +37,7 @@ contact form returns a "not configured" message rather than failing silently.
 | `/work-with-us` | Careers |
 | `/contact` | Enquiry form + OpenStreetMap embed |
 | `/privacy-policy` | See CONTENT-NOTES.md |
-| `/api/contact` | Form handler (Resend) |
+| `/api/contact` | Form handler (Atlas) |
 
 `sitemap.xml`, `robots.txt` and a real 404 are generated automatically.
 

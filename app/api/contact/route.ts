@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import { atlasConfigured, sendAtlasEmail } from "@/lib/atlas";
 import { CONTACT, SITE_NAME } from "@/lib/site";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
@@ -24,14 +24,6 @@ const LIMITS: Record<string, number> = {
   postcode: 20,
   comments: 4000,
 };
-
-const escapeHtml = (value: string) =>
-  value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 
 /**
  * Strip CR/LF and other control characters. Anything interpolated into a mail
@@ -122,9 +114,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.error("RESEND_API_KEY is not set — enquiry was not delivered.");
+  if (!atlasConfigured()) {
+    console.error("ATLAS_API_KEY is not set — enquiry was not delivered.");
     return NextResponse.json(
       { error: "The enquiry form is not configured. Please call us instead." },
       { status: 500 },
@@ -142,25 +133,17 @@ export async function POST(request: Request) {
     ["Comments", comments],
   ];
 
-  const html = `
-    <h2>New website enquiry — ${SITE_NAME}</h2>
-    <table cellpadding="8" style="border-collapse:collapse">
-      ${rows
-        .filter(([, value]) => value)
-        .map(
-          ([label, value]) =>
-            `<tr><th align="left" style="border-bottom:1px solid #e5e5e7">${label}</th><td style="border-bottom:1px solid #e5e5e7">${escapeHtml(
-              value,
-            ).replace(/\n/g, "<br>")}</td></tr>`,
-        )
-        .join("")}
-    </table>
-    <p style="color:#666;font-size:12px">Submitted from ${escapeHtml(ip)}</p>
-  `;
+  // Atlas takes a plain-text body, so the enquiry goes out as labelled lines.
+  const text = [
+    `New website enquiry — ${SITE_NAME}`,
+    "",
+    ...rows.filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`),
+    "",
+    `Submitted from ${ip}`,
+  ].join("\n");
 
   try {
-    const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
+    const result = await sendAtlasEmail({
       from: process.env.CONTACT_FROM_EMAIL || "enquiries@landmarksurveys.com.au",
       to: process.env.CONTACT_TO_EMAIL || CONTACT.email,
       // Both header values are user-supplied, so both are flattened.
@@ -168,11 +151,11 @@ export async function POST(request: Request) {
       subject: singleLine(
         `Website enquiry — ${firstName} ${lastName}`,
       ).slice(0, 180),
-      html,
+      text,
     });
 
-    if (error) {
-      console.error("Resend error:", error);
+    if (!result.ok) {
+      console.error(`Atlas send failed ${result.status}: ${result.detail}`);
       return NextResponse.json(
         { error: "We could not send your enquiry. Please call us instead." },
         { status: 502 },
