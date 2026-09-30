@@ -40,7 +40,7 @@ export default function PrivacyPolicyPage() {
               <h2 className="text-navy">What this website collects</h2>
               <p className="mt-4">
                 The only information this website collects is what you enter
-                into the enquiry form on the contact page — your name,
+                into the enquiry form on the contact page: your name,
                 organisation, phone number, email address, the project address
                 you supply and your message. It is sent to the business by
                 email.
