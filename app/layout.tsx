@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 import { CONTACT, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
+import { Analytics } from "@vercel/analytics/react";
 
 // Display face — squared terminals and a technical bearing that suits the
 // angular mark better than a soft geometric sans.
@@ -149,6 +150,7 @@ export default function RootLayout({
         <main id="main">{children}</main>
         <Footer />
         <ScrollReveal />
+        <Analytics />
       </body>
     </html>
   );
